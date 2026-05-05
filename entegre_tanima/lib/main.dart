@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Entegre Tanıma',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const SplashScreen(),
+      home: SplashScreen(cameras: cameras),
     );
   }
 }
@@ -150,7 +150,10 @@ Widget buildScannerOverlay(BuildContext context) {
     children: [
       // Ekranın geri kalanını hafif karartmak için
       ColorFiltered(
-        overlay     color: Colors.black.withOpacity(0.5),
+        colorFilter: ColorFilter.mode(
+          Colors.black.withOpacity(0.5),
+          BlendMode.srcOver,
+        ),
         child: Container(
           decoration: const BoxDecoration(
             color: Colors.transparent,
