@@ -115,7 +115,17 @@ class _ScannerPageState extends State<ScannerPage> {
       appBar: AppBar(title: const Text('Entegre Tarayıcı')),
       body: Stack(
         children: [
-          CameraPreview(_cameraController),
+          CameraPreview(_cameraController),// Bizim eklediğimiz yeşil tarama çerçevesi
+          Center(
+            child: Container(
+              width: 280, 
+              height: 180,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.greenAccent, width: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
           Positioned(
             bottom: 30,
             left: 20,
@@ -134,4 +144,30 @@ class _ScannerPageState extends State<ScannerPage> {
       ),
     );
   }
+}
+Widget buildScannerOverlay(BuildContext context) {
+  return Stack(
+    children: [
+      // Ekranın geri kalanını hafif karartmak için
+      ColorFiltered(
+        overlay     color: Colors.black.withOpacity(0.5),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
+          ),
+        ),
+      ),
+      // Tam ortadaki yeşil çerçeve (Entegre alanı)
+      Center(
+        child: Container(
+          width: 280, // Genişlik
+          height: 180, // Yükseklik (Entegre şekline uygun)
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.greenAccent, width: 3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    ],
+  );
 }
