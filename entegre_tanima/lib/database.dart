@@ -18,6 +18,24 @@ class ElektronikParca {
 List<ElektronikParca> parcaVeritabani = [
   // --- ENTEGRELER (IC) ---
   ElektronikParca(
+    kod: "74HC08",
+    kategori: "Lojik Entegre",
+    isim: "Dörtlü 2 Girişli VE (AND) Kapısı",
+    aciklama: "İçerisinde 4 adet bağımsız 2 girişli AND (VE) kapısı barındıran yüksek hızlı CMOS lojik entegresidir. Sadece her iki giriş de HIGH (1) olduğunda çıkış HIGH (1) olur, diğer tüm durumlarda LOW (0) verir.",
+    datasheetUrl: "https://www.ti.com/lit/ds/symlink/sn74hc08.pdf",
+    pinoutGorseli: "assets/images/74hc08_pinout.png", 
+  ),
+
+  ElektronikParca(
+    kod: "74S86",
+    kategori: "Lojik Entegre",
+    isim: "Dörtlü 2 Girişli Özel VEYA (XOR) Kapısı",
+    aciklama: "İçerisinde 4 adet bağımsız 2 girişli XOR (Özel VEYA) kapısı bulundurur. Sadece iki giriş birbirinden FARKLI olduğunda (biri 1, diğeri 0) çıkış HIGH (1) değerini verir. Girişler aynıysa çıkış LOW (0) olur.",
+    datasheetUrl: "https://www.ti.com/lit/gpn/SN74LS86A",
+    pinoutGorseli: "assets/images/74s86_pinout.png", 
+  ),
+  
+  ElektronikParca(
     kod: "NE555",
     kategori: "Entegre",
     isim: "Hassas Zamanlayıcı (Timer)",
