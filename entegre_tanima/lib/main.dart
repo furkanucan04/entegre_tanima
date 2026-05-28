@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart'; // WriteBuffer hatasını çözen pake
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:url_launcher/url_launcher.dart'; 
 import 'splash_screen.dart';
 import 'database.dart';
 
@@ -21,9 +20,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Entegre Tanıma',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      debugShowCheckedModeBanner: false, 
-      home: SplashScreen(cameras: cameras), 
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: SplashScreen(cameras: cameras),
     );
   }
 }
@@ -40,7 +40,6 @@ class _ScannerPageState extends State<ScannerPage> {
   late CameraController _cameraController;
   late TextRecognizer _textRecognizer;
   String _recognizedText = "Yazı aranıyor...";
-  bool _isPanelOpen = false;
   bool _isProcessing = false;
   bool _isPanelOpen = false;
 
@@ -50,8 +49,8 @@ class _ScannerPageState extends State<ScannerPage> {
     _cameraController = CameraController(
       widget.cameras[0],
       ResolutionPreset.high,
-      enableAudio: false, 
-      imageFormatGroup: ImageFormatGroup.nv21, 
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.nv21,
     );
 
     _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
@@ -88,61 +87,101 @@ class _ScannerPageState extends State<ScannerPage> {
       );
 
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-      
-      String odaklanmisMetin = "";
-      double imgWidth = image.width.toDouble();
-      double imgHeight = image.height.toDouble();
-      
-      if (widget.cameras[0].sensorOrientation == 90 || widget.cameras[0].sensorOrientation == 270) {
-        imgWidth = image.height.toDouble();
-        imgHeight = image.width.toDouble();
-      }
 
-      double imgCenterX = imgWidth / 2;
-      double imgCenterY = (imgHeight / 2) + (imgHeight * 0.05); 
+      setState(() {
+        if (recognizedText.text.isEmpty) {
+          _recognizedText = "Yazı aranıyor...";
+        } else {
+          String okunankod = recognizedText.text.trim().toUpperCase();
+          _recognizedText = recognizedText.text;
 
-      Rect hedefKutu = Rect.fromCenter(
-        center: Offset(imgCenterX, imgCenterY),
-        width: imgWidth * 0.6,  
-        height: imgHeight * 0.22, 
-      );
+          final bulunanParca = parcaVeritabani.firstWhere(
+            (parca) => okunankod.contains(parca.kod.toUpperCase()),
+            orElse: () => ElektronikParca(kod: '', kategori: '', isim: '', aciklama: '', datasheetUrl: '', pinoutGorseli: ''),
+          );
 
-      for (TextBlock block in recognizedText.blocks) {
-        Offset metinMerkezi = Offset(
-          block.boundingBox.left + (block.boundingBox.width / 2),
-          block.boundingBox.top + (block.boundingBox.height / 2),
-        );
-
-        if (hedefKutu.contains(metinMerkezi)) {
-          odaklanmisMetin += block.text + " ";
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          if (odaklanmisMetin.trim().isEmpty) {
-            _recognizedText = "Çerçeveye entegre yerleştirin...";
-          } else {
-            String okunankod = odaklanmisMetin.trim().toUpperCase();
-            _recognizedText = okunankod; 
-
-            final bulunanParca = parcaVeritabani.firstWhere(
-              (parca) => okunankod.contains(parca.kod.toUpperCase()),
-              orElse: () => ElektronikParca(kod: '', kategori: '', isim: '', aciklama: '', datasheetUrl: '', pinoutGorseli: ''),
-            );
-
-            if (bulunanParca.kod.isNotEmpty && !_isPanelOpen) {
-              _isPanelOpen = true; 
-              _elemanDetayPaneliniGoster(context, bulunanParca); 
-            }
+          if (bulunanParca.kod.isNotEmpty && !_isPanelOpen) {
+            _isPanelOpen = true;
+            _elemanDetayPaneliniGoster(context, bulunanParca);
           }
-        });
-      }
+        }
+      });
     } catch (e) {
       debugPrint("ML KIT HATASI: $e");
     } finally {
       _isProcessing = false;
     }
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    _textRecognizer.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_cameraController.value.isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    }
+    return Scaffold(
+      // BUTONU BURAYA, SCAFFOLD'UN İÇİNE EKLİYORUZ
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.search),
+        onPressed: () {
+          showSearch(
+            context: context,
+            delegate: EntegreAramaDelegate(),
+          );
+        },
+      ),  
+      body: Stack(
+        children: [
+          CameraPreview(_cameraController),
+          buildScannerOverlay(context),
+          Positioned(
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.all(15),
+              color: Colors.black87,
+              child: Text(
+                _recognizedText,
+                style: const TextStyle(color: Colors.white, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildScannerOverlay(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Container(
+            color: Colors.black.withOpacity(0.5),
+          ),
+        ),
+        Center(
+          child: Container(
+            width: 280,
+            height: 180,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.greenAccent, width: 3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   void _elemanDetayPaneliniGoster(BuildContext context, ElektronikParca parca) {
@@ -195,129 +234,108 @@ class _ScannerPageState extends State<ScannerPage> {
                   parca.pinoutGorseli,
                   height: 150,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Text("Görsel yüklenemedi", style: TextStyle(color: Colors.redAccent)),
+                  errorBuilder: (context, error, stackTrace) => const Text("Görsel yüklenemedi"),
                 ),
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final Uri url = Uri.parse(parca.datasheetUrl);
-                    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                      print("Link açılamadı: $url");
-                    }
-                  },
-                  icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text("Datasheet'i Gör (PDF)"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final Uri url = Uri.parse('https://www.alldatasheet.com/');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    debugPrint('Datasheet açılamadı.');
+                  }
+                },
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text("Datasheet'i Gör (PDF)"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ], // Column listesini kapatır
+        ), // Column'u kapatır
+      ); // Container veya Padding'i kapatır
+    }, // builder'ı kapatır
     ).then((_) {
-      if (mounted) {
-        setState(() {
-          _isPanelOpen = false;
-        });
-      }
+      _isPanelOpen = false;
     });
+  } // _elemanDetayPaneliniGoster fonksiyonunu kapatır
+}
+
+class EntegreAramaDelegate extends SearchDelegate<String> {
+  // Veritabanındaki entegrelerin listesi (Burayı kendi elinizdeki entegrelerle değiştirebilirsiniz)
+  final List<String> tumEntegreler = [
+    '74LS08', 'NE555', 'LM317', 'BC547', 'IRFZ44N', 'ATMEGA328P', 'TIP120'
+  ];
+
+  @override
+  String get searchFieldLabel => 'Entegre ara...';
+
+  // Arama çubuğunun sağındaki (X) temizle butonu
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = ''; 
+        },
+      ),
+    ];
   }
 
-  Widget buildScannerOverlay(BuildContext context) {
-    return Stack(
-      children: [
-        ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.5),
-            BlendMode.srcOut, 
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-            ),
-            child: Center(
-              child: Container(
-                width: 280,
-                height: 180,
-                decoration: BoxDecoration(
-                  color: Colors.black, 
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Center(
-          child: Container(
-            width: 280, 
-            height: 180, 
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.greenAccent, width: 3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-      ],
+  // Arama çubuğunun solundaki (<-) geri dön butonu
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, ''); 
+      },
     );
   }
 
   @override
-  void dispose() {
-    _cameraController.dispose();
-    _textRecognizer.close();
-    super.dispose();
+  Widget buildResults(BuildContext context) {
+    return const Center(child: Text('Lütfen listeden bir entegre seçin.'));
   }
 
+  // Kullanıcı harfleri yazarken çalışan anlık filtreleme
   @override
-  Widget build(BuildContext context) {
-    if (!_cameraController.value.isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget buildSuggestions(BuildContext context) {
+    final oneriler = tumEntegreler.where((entegre) {
+      return entegre.toLowerCase().contains(query.toLowerCase());
+    }).toList();
 
-    }
-    return Scaffold(
-      // BUTONU BURAYA, SCAFFOLD'UN İÇİNE EKLİYORUZ
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.redAccent,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.search),
-        onPressed: () {
-          showSearch(
-            context: context,
-            delegate: EntegreAramaDelegate(),
-          );
-        },
-      ),  
-      body: Stack(
-        children: [
-          CameraPreview(_cameraController),
-          buildScannerOverlay(context), 
-          Positioned(
-            bottom: 30,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _recognizedText,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return ListView.builder(
+      itemCount: oneriler.length,
+      itemBuilder: (context, index) {
+        final entegre = oneriler[index];
+        return ListTile(
+              leading: Image.asset(
+                'assets/images/${entegre.toLowerCase()}_pinout.png',
+                width: 50,
+                height: 50,
+                fit: BoxFit.contain,
+                errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+                  return const Icon(Icons.memory);
+                },
+              ), 
+              title: Text(entegre),
+              onTap: () {
+                // Kullanıcı listedeki entegreye tıkladığında arama ekranını kapatır
+                close(context, entegre); 
+              },
+            );
+      },
     );
   }
 }
+
