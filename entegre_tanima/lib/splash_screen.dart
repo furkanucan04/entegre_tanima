@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart'; // Kamera kütüphanesini ekledik
 import 'main.dart'; // Ana sayfanın kodlarını buraya çağırıyoruz
+import 'ana_sayfa.dart';
 
 class SplashScreen extends StatefulWidget {
   final List<CameraDescription> cameras; // Kameraları tutacak değişken eklendi
@@ -21,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
         context,
         MaterialPageRoute(
           // DİKKAT: Kameraları asıl sayfaya burada teslim ediyoruz ve 'const'u kaldırdık
-          builder: (context) => ScannerPage(cameras: widget.cameras), 
+          builder: (context) => AnaSayfa(cameras: widget.cameras), 
         ),
       );
     });
