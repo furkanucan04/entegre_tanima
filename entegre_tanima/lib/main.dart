@@ -5,9 +5,14 @@ import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'splash_screen.dart';
 import 'database.dart';
+import 'package:fullscreen_window/fullscreen_window.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Uygulamayı tam ekran yapar
+  FullScreenWindow.setFullScreen(true);
+
   final cameras = await availableCameras();
   runApp(MyApp(cameras: cameras));
 }
